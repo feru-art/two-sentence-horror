@@ -1,22 +1,38 @@
-// Two-Sentence Horror — entry program for make.fun
-// (u-suroto-two-sentence-horror-acea9253).
+// Two-Sentence Horror — make.fun entry (u-suroto-two-sentence-horror-acea9253).
 //
-// The program writes exactly one horror story of two sentences to
-// /output/entry.txt. The story is held as a single constant and written
-// verbatim, with no trailing newline, so two runs produce byte-identical
-// output. Only the Node standard library is used; no network, no clock,
-// no randomness.
-import { mkdirSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
+// Writes exactly one two-sentence horror story to /output/entry.txt.
+// Node standard library only; no network, no clock, no randomness.
+//
+// The story (local race winner, V3, 4-0): a recipe book whose newest
+// entry is written in the reader's own handwriting — and whose last
+// ingredient is the reader. Two sentences, ASCII, exactly two full
+// stops, no trailing newline, byte-identical on every run.
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
-// The story — WINNER of the local pairwise race (V3, 4-0).
-// Angle: a recipe book; the twist is a fact, not an explanation:
-// the final ingredient is the reader. Two sentences, ASCII only,
-// exactly two full stops in total: one closing each sentence.
 const STORY =
   "A new recipe appeared in my grandmother's cookbook, written in handwriting identical to mine, for a dish I have never made. " +
   "The ingredients list ends with my name, my weight, and the words serve warm.";
 
-const outPath = "/output/entry.txt";
-mkdirSync(dirname(outPath), { recursive: true });
-writeFileSync(outPath, STORY, "utf8");
+function checkStory(text: string): void {
+  // Gate: exactly two sentences (two full stops, nothing after the last).
+  // The twist must stay a plain fact, not an explanation — the reader
+  // is the final ingredient, and the story ends there.
+  const stops = (text.match(/\./g) ?? []).length;
+  if (stops !== 2) throw new Error(`expected exactly 2 sentences, found ${stops} full stops`);
+  if (text.endsWith("\n")) throw new Error("no trailing newline allowed");
+  if (text.trim() !== text) throw new Error("no leading or trailing whitespace allowed");
+}
+
+function main(): void {
+  checkStory(STORY);
+  const outDir = process.env.MAKEFUN_OUT_DIR ?? "/output";
+  mkdirSync(outDir, { recursive: true });
+  const outPath = `${outDir}/entry.txt`;
+  writeFileSync(outPath, STORY, "utf8");
+  // Read back: the file on disk must be exactly the story.
+  const back = readFileSync(outPath, "utf8");
+  if (back !== STORY) throw new Error("read-back mismatch after writing entry.txt");
+  if (!existsSync(outPath)) throw new Error("entry.txt was not created");
+}
+
+main();
